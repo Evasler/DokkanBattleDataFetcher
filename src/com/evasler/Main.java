@@ -64,11 +64,14 @@ public class Main {
 
     public static void fetch_card() {
 
-        launch_chrome("https://dbz-dokkanbattle.fandom.com/wiki/Aim_to_Surpass_Super_Saiyan_Goku");
+        launch_chrome("https://dbz-dokkanbattle.fandom.com/wiki/Special_Transformation_Super_Saiyan_3_Gotenks");
         accept_cookies();
         scroll_to_bottom();
 
-        System.out.println("card_id: " + fetch_card_id(1));
+
+
+        String card_id = fetch_card_id(1);
+        /*System.out.println("card_id: " + fetch_card_id(1));
         System.out.println("card_name: " + fetch_card_name());
         System.out.println("character_name: " + fetch_character_name());
         System.out.println("rarity: " + fetch_rarity());
@@ -85,7 +88,8 @@ public class Main {
         System.out.println("DEF: " + stats.get(1));
         System.out.println("ATK: " + stats.get(2));
         System.out.println("multiplier: " + fetch_twelve_ki_multiplier());
-        System.out.println("hidden_potential_rank: " + fetch_hidden_potential_rank());
+        System.out.println("hidden_potential_rank: " + fetch_hidden_potential_rank());*/
+        add_super_attack(1, card_id);
     }
 
     private static String fetch_card_id(int version) {
@@ -285,6 +289,8 @@ public class Main {
 
         if (skill_type.contains("Leader Skill")) {
             png = "Leader_Skill";
+        } else if (skill_type.contains("Super Attack")) {
+            png = "Super_atk";
         } else if (skill_type.contains("Passive Skill")) {
             png = "Passive_skill";
         } else if (skill_type.contains("Active Skill")) {
@@ -306,16 +312,24 @@ public class Main {
     private static String clean_text(String text, String png, String amendment, int version) {
         text = clean_from_icons(text, png, amendment, version);
         text = clean_from_links(text, png, amendment, version);
-        text = clean_from_tags(text);
+        text = text.replaceAll("\n", "");
+        text = clean_from_tags(text, png);
         text = text.replaceAll("\\[\\d]", "");
         text = text.replaceAll("&amp;", "&");
 
         return text;
     }
 
-    public static String clean_from_tags(String text) {
+    public static String clean_from_tags(String text, String png) {
 
-        text = text.replaceAll("<br>", " ");
+        String br_replacement;
+        if (png.equals("Super_atk")) {
+            br_replacement = "\n";
+        } else {
+            br_replacement =" ";
+        }
+
+        text = text.replaceAll("<br>", br_replacement);
         text = text.replaceAll("<[^<>]+>", "");
         text = text.replaceAll("</[^<>]+>", "");
         return text;
@@ -393,7 +407,7 @@ public class Main {
     private static Integer fetch_twelve_ki_multiplier() {
         String text = chromeDriver.findElement(By.xpath("((//table[contains(.,'Additional Information.png')])[1]//p[contains(.,'Multiplier')])[1]")).getText();
 
-        Pattern ki_pattern = Pattern.compile("12 Ki.+?%");
+        Pattern ki_pattern = Pattern.compile("12 Ki[0-9]{3}%");
         Matcher matcher = ki_pattern.matcher(text);
         if (matcher.find()) {
             text = matcher.group();
@@ -446,6 +460,100 @@ public class Main {
 
     private static String fetch_drop_event() {
         return chromeDriver.findElement(By.xpath("//img[contains(@src, 'How_to_obtain')]//ancestor::tr/following-sibling::tr//a")).getAttribute("title");
+    }
+
+    private static List<String> add_super_attack(int version, String card_id) {
+
+        List<String> super_attack_name_contents = new ArrayList<>(Arrays.asList(Objects.requireNonNull(fetch_skill_info("Super Attack Name", version)).split("\n")));
+        List<String> super_attack_names = new ArrayList<>();
+        List<String> super_attack_types = new ArrayList<>();
+        List<String> super_attack_launch_condition = new ArrayList<>();
+        String ki;
+        for (String content : super_attack_name_contents) {
+            ki = "";
+            content = content.trim();
+            if (fetch_ki_meters().size() > 1 ||(content.contains("(") && !content.matches("[^()]+(\\(Extreme\\)\\s)?\\([0-9]{1,2}-?[0-9]{1,2}\\+?\\sKi\\)$") &&
+                    !content.matches("[^()]+?(\\(Extreme\\))?$"))) {
+                System.out.println("Irregular SA: " + fetch_card_name() + "\n---------------------------------------------------------");
+                super_attack_names.clear();
+                break;
+            } else {
+                if (content.contains("Energy attack bubble")) {
+                    content = content.replace("Energy attack bubble", "").trim();
+                    super_attack_types.add("Ki Blast");
+                } else {
+                    super_attack_types.add("Melee");
+                }
+
+                if (content.matches("[^()]+?(\\(Extreme\\))?$")) {  //contains only super attack name
+                    if (hasPremierSuperAttack()) {
+                        System.out.println("Premier SA: " + fetch_card_name() + "\n---------------------------------------------------------");
+                        super_attack_names.clear();
+                        break;
+                    } else {
+                        ki = "12";
+                    }
+                } else if (content.matches("[^()]+(\\(Extreme\\)\\s)?\\([0-9]{1,2}\\sKi\\)$")) {   //contains super attack name and single ki
+                    ki = content.substring(content.replace("(Extreme)", "").indexOf("(") + 1, content.indexOf(" Ki)"));
+                    content = content.replaceAll("\\([0-9]{1,2}\\sKi\\)$", "").trim();
+                } else if (content.matches("[^()]+(\\(Extreme\\)\\s)?\\([0-9]{1,2}-[0-9]{1,2}\\sKi\\)$")) {  //contains super attack name and ki range
+                    ki = content.substring(content.replace("(Extreme)", "").indexOf("(") + 1);
+                    ki = ki.substring(0, ki.indexOf("-"));
+                    content = content.replaceAll("\\([0-9]{1,2}-[0-9]{1,2}\\sKi\\)$", "").trim();
+                } else if (content.matches("[^()]+(\\(Extreme\\)\\s)?\\([0-9]{1,2}\\+\\sKi\\)$")) {  //contains super attack name and ki threshold
+                    ki = content.substring(content.replace("(Extreme)", "").indexOf("(") + 1);
+                    ki = ki.substring(0, ki.indexOf("+"));
+                    content = content.replaceAll("\\([0-9]{1,2}\\+\\sKi\\)$", "").trim();
+                }
+
+                super_attack_names.add(content);
+                super_attack_launch_condition.add("ki:" + ki);
+            }
+        }
+
+        if (super_attack_names.size() > 0) {
+            List<String> super_attack_effects = new ArrayList<>(Arrays.asList(Objects.requireNonNull(fetch_skill_info("Super Attack", version)).split("\n")));
+
+            Connection connection;
+            try {
+                connection = DriverManager.getConnection("jdbc:sqlite:" + DB_FILEPATH);
+                Statement statement = connection.createStatement();
+                String query;
+                query = "SELECT count(super_attack_id) FROM super_attack";
+                ResultSet rs = statement.executeQuery(query);
+                int super_attacks_total = rs.getInt(1);
+
+                for (int i = 0; i < super_attack_names.size(); i++) {
+                    query = "INSERT INTO card_super_attack_relation (card_id, super_attack_id) " +
+                            "VALUES ('" + card_id + "'," + super_attacks_total + ")";
+                    statement.execute(query);
+                    query = "INSERT INTO super_attack (super_attack_id,super_attack_name,super_attack_launch_condition,super_attack_type,super_attack_effect)" +
+                            "VALUES (" + super_attacks_total++ + ",'" + formatForSQLite(super_attack_names.get(i)) + "','" + super_attack_launch_condition.get(i) + "','" + super_attack_types.get(i) + "','" + formatForSQLite(super_attack_effects.get(i)).replaceAll("►", "").trim() + "')";
+                    statement.execute(query);
+                }
+
+
+                connection.close();
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+        }
+
+        return null;
+    }
+
+    private static String formatForSQLite(String text) {
+        return text.replaceAll("'", "''");
+    }
+
+    private static boolean hasPremierSuperAttack() {
+        List<WebElement> elms = chromeDriver.findElements(By.xpath("//img[contains(@src, 'Special_Skill')]//ancestor::tr/following-sibling::tr//img[contains(@src, 'Premier_Super_Attack_Skill_Effect')]"));
+        return elms.size() > 0;
+    }
+
+    private static List<WebElement> fetch_ki_meters() {
+        List<WebElement> ki_meters = chromeDriver.findElements(By.xpath("//img[contains(@src, 'Ki_meter')]//ancestor::td/following-sibling::td//img"));
+        return ki_meters;
     }
 
     public static void fetch_medals() {
