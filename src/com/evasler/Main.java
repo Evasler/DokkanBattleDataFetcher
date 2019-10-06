@@ -26,11 +26,17 @@ public class Main {
     private static final  String PROJECT_FILEPATH = System.getProperty("user.dir");
     private static final  String DB_FILEPATH = PROJECT_FILEPATH + "\\assets\\db\\dokkan.db";
 
+    private static List<String> error_messages;
+
     public static void main(String[] args) {
 
         //fetch_links();
         //fetch_medals();
+        error_messages = new ArrayList<>();
         fetch_cards();
+        for (String error_message : error_messages) {
+            System.out.println(error_message);
+        }
         quit_firefoxDriver();
     }
 
@@ -635,7 +641,7 @@ public class Main {
             content = content.trim();
             if (fetch_ki_meters().size() > 1 ||(content.contains("(") && !content.matches("[^()]+(\\(Extreme\\)\\s)?\\([0-9]{1,2}-?[0-9]{1,2}\\+?\\sKi\\)$") &&
                     !content.matches("[^()]+?(\\(Extreme\\))?$"))) {
-                System.out.println("Irregular SA: " + fetch_card_name() + "\n---------------------------------------------------------");
+                error_messages.add("Irregular SA: " + fetch_card_name());
                 super_attack_names.clear();
                 break;
             } else {
@@ -648,7 +654,7 @@ public class Main {
 
                 if (content.matches("[^()]+?(\\(Extreme\\))?$")) {  //contains only super attack name
                     if (hasPremierSuperAttack()) {
-                        System.out.println("Premier SA: " + fetch_card_name() + "\n---------------------------------------------------------");
+                        error_messages.add("Premier SA: " + fetch_card_name());
                         super_attack_names.clear();
                         break;
                     } else {
@@ -784,7 +790,7 @@ public class Main {
                     query = "INSERT INTO card_" + table_name + "_relation(card_id," + table_name + "_id) VALUES('" + card_id + "'," + id + ")";
                     statement.execute(query);
                 } else {
-                    System.out.println("Invalid " + type + ": " + fetch_card_name() + "\n---------------------------------------------------------");
+                    error_messages.add("Invalid " + type + ": " + fetch_card_name());
                 }
             }
             connection.close();
@@ -818,7 +824,7 @@ public class Main {
         List<WebElement> medal_elms = firefoxDriver.findElements(By.xpath(xpath));
 
         if (medal_elms.size() == 0) {
-            System.out.println("Missing " + medal_type + ": " + fetch_card_name() + "\n---------------------------------------------------------");
+            error_messages.add("Missing " + medal_type + ": " + fetch_card_name());
             return;
         }
 
@@ -871,7 +877,7 @@ public class Main {
             ResultSet medal_ids_rs = statement.executeQuery(query.toString());
 
             if (medal_ids_rs.isClosed()) {
-                System.out.println("Missing " + medal_type + ": " + fetch_card_name() + "\n---------------------------------------------------------");
+                error_messages.add("Missing " + medal_type + ": " + fetch_card_name());
                 return;
             }
 
