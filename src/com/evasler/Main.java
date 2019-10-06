@@ -53,6 +53,7 @@ public class Main {
         while (true) {
             next_button = firefoxDriver.findElements(By.xpath("//a[contains(@class,'category-page__pagination-next')]"));
             for (int i = 1; i <= cards_on_page; i++) {
+                System.out.println(fetch_card_name());
                 temp_card = firefoxDriver.findElement(By.xpath("//div[@class='category-page__members']//a[img])[" + i + "]"));
                 click_element(temp_card);
                 fetch_card();
@@ -1138,7 +1139,6 @@ public class Main {
                                 + (total_medals + j - 1) + ",'" + temp_medal_name.replaceAll("'", "''") + "','"
                                 + medal_category.get(i-1).replaceAll("'", "''") + "')";
                         statement.execute(query);
-                        System.out.println(query);
 
                         temp_image_src = firefoxDriver.findElement(By.xpath("//table[1]//a[img]")).getAttribute("href");
                         while(!downloadImage(temp_image_src, save_path, Integer.toString(total_medals + j - 1))) {
@@ -1152,7 +1152,6 @@ public class Main {
                                     " " + exz_medal_ranks.get(z) + "','"
                                     + medal_category.get(i-1).replaceAll("'", "''") + "')";
                             statement.execute(query);
-                            System.out.println(query);
 
                             temp_image_src = firefoxDriver.findElement(By.xpath("//a[img[contains(@alt,'" + exz_medal_ranks.get(z) + "') or contains(@alt,'" + exz_medal_ranks.get(z).toLowerCase() + "')]]")).getAttribute("href");
                             while(!downloadImage(temp_image_src, save_path, Integer.toString(total_medals + j - 1))) {
