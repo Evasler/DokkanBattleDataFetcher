@@ -36,12 +36,90 @@ public class Main {
 
         //fetch_links();
         //fetch_medals();
-        //fetch_cards("https://dbz-dokkanbattle.fandom.com/wiki/Category:N", "");
-        //fetch_cards("https://dbz-dokkanbattle.fandom.com/wiki/Category:R", "");
-        //fetch_cards("https://dbz-dokkanbattle.fandom.com/wiki/Category:SR", "");
-        //fetch_cards("https://dbz-dokkanbattle.fandom.com/wiki/Category:SSR", "");
-        //fetch_cards("https://dbz-dokkanbattle.fandom.com/wiki/Category:UR", "");
-        //fetch_cards("https://dbz-dokkanbattle.fandom.com/wiki/Category:LR", "The True Value of Perfect Form Cell (Perfect Form)");
+        /*fetch_cards("https://dbz-dokkanbattle.fandom.com/wiki/Category:N", "");
+        fetch_cards("https://dbz-dokkanbattle.fandom.com/wiki/Category:R", "");
+        fetch_cards("https://dbz-dokkanbattle.fandom.com/wiki/Category:SR", "");
+        fetch_cards("https://dbz-dokkanbattle.fandom.com/wiki/Category:SSR", "");
+        fetch_cards("https://dbz-dokkanbattle.fandom.com/wiki/Category:UR", "");
+        fetch_cards("https://dbz-dokkanbattle.fandom.com/wiki/Category:LR", "The True Value of Perfect Form Cell (Perfect Form)");
+        fetch_specific_card("https://dbz-dokkanbattle.fandom.com/wiki/Overflowing_Resolve_Goku");
+        fetch_specific_card("https://dbz-dokkanbattle.fandom.com/wiki/Message_from_Another_World_Goku_(Angel)");
+        fetch_specific_card("https://dbz-dokkanbattle.fandom.com/wiki/Legendary_Super_Saiyan_Super_Saiyan_Goku");
+        fetch_specific_card("https://dbz-dokkanbattle.fandom.com/wiki/Flawless_Technique_Super_Saiyan_Goku_(Angel)");
+        fetch_specific_card("https://dbz-dokkanbattle.fandom.com/wiki/Heading_for_a_Showdown_Super_Saiyan_3_Goku_(Angel)");
+        fetch_specific_card("https://dbz-dokkanbattle.fandom.com/wiki/Desperate_God_of_Destruction_Beerus_(Monaka_Costume)");
+        fetch_specific_card("https://dbz-dokkanbattle.fandom.com/wiki/Fictitious_Universe%27s_Strongest_Beerus_(Monaka_Costume)");
+        fetch_specific_card("https://dbz-dokkanbattle.fandom.com/wiki/The_Terror_of_Universe%27s_Most_Malevolent_Frieza_(1st_Form)");
+        fetch_specific_card("https://dbz-dokkanbattle.fandom.com/wiki/Glacial_Prestige_Frieza_(1st_Form)");
+        fetch_specific_card("https://dbz-dokkanbattle.fandom.com/wiki/A_Dream_to_Be_Fulfilled_Android_17");
+        fetch_specific_card("https://dbz-dokkanbattle.fandom.com/wiki/Last-Ditch_Battle_Android_17");
+        fetch_specific_card("https://dbz-dokkanbattle.fandom.com/wiki/Rematch_Between_Old_Foes_Cell_(Perfect_Form)_(GT)");
+        fetch_specific_card("https://dbz-dokkanbattle.fandom.com/wiki/Roaring_Hatred_from_Hell_Cell_(Perfect_Form)_(GT)");
+        fetch_specific_card("https://dbz-dokkanbattle.fandom.com/wiki/Ultimate_Malign_Being_Super_Baby_2_(Giant_Ape)");*/
+        //fetch_specific_card("https://dbz-dokkanbattle.fandom.com/wiki/The_Androids'_Journey_Androids_17_%26_18/Android_16"); not working as expected, added manually
+        /*fetch_specific_card("https://dbz-dokkanbattle.fandom.com/wiki/Battle_as_a_Namekian_Piccolo");
+        fetch_specific_card("https://dbz-dokkanbattle.fandom.com/wiki/Clear_Path_Vados");
+        fetch_specific_card("https://dbz-dokkanbattle.fandom.com/wiki/Greedy_Attack_Mode_Shugesh_(Giant_Ape)");
+        fetch_specific_card("https://dbz-dokkanbattle.fandom.com/wiki/Feverish_Battlefield_Borgos_(Giant_Ape)");
+        fetch_specific_card("https://dbz-dokkanbattle.fandom.com/wiki/Strike_From_on_High_Dabura");
+        fetch_specific_card("https://dbz-dokkanbattle.fandom.com/wiki/Unmeasurable_Super_Combat_Power_Super_Saiyan_3_Gohan_(Teen)");
+        fetch_specific_card("https://dbz-dokkanbattle.fandom.com/wiki/Back_on_the_Front_Line_Krillin");
+        fetch_specific_card("https://dbz-dokkanbattle.fandom.com/wiki/Diabolical_Strike_Nappa");*/
+        //fetch_hidden_potential_of_dokkaned_SSRs();
+    }
+
+    public static void fetch_hidden_potential_of_dokkaned_SSRs() {
+
+        launch_firefox("https://dbz-dokkanbattle.fandom.com/wiki/Dragon_Ball_Z_Dokkan_Battle_Wikia");
+        accept_cookies();
+        WebElement searchField;
+        Connection connection;
+        try {
+            connection = DriverManager.getConnection("jdbc:sqlite:" + DB_FILEPATH);
+            Statement statement = connection.createStatement();
+            String query = "SELECT card_id,card_name,character_name FROM card WHERE rarity = 'SSR' AND card_id NOT IN (SELECT card_id FROM card_hidden_potential_rank_relation) AND card_id IN (SELECT dokkan_awakened_card_id FROM card_dokkan_awakened_card_relation)" +
+                    "and NOT card_name = 'Power Born of Ambition' and NOT card_name = 'The Pinnacle of Evil' and NOT card_name = 'Terrifying Metal Body' and NOT card_name = 'True Child Prodigy' and NOT card_name = 'Masterful Technique' and NOT card_name = 'Goddess of Peace' and NOT card_name = 'Ingenious Scheme on a Grand Scale'";
+            ResultSet rs = statement.executeQuery(query);
+            List<String> ids = new ArrayList<>();
+            List<String> card_names = new ArrayList<>();
+            List<String> character_names = new ArrayList<>();
+            while (rs.next()) {
+                ids.add(rs.getString(1));
+                card_names.add(rs.getString(2));
+                character_names.add(rs.getString(3).replaceAll("\\[", "(").replaceAll("]", ")").replaceAll("#", ""));
+            }
+            connection.close();
+
+            for (int i = 0; i < ids.size(); i++) {
+                firefoxDriver.findElement(By.xpath("//span[contains(text(),'Search')]/parent::div")).click();
+                threadSleep(500);
+                searchField = firefoxDriver.findElement(By.xpath("(//input)[1]"));
+                searchField.sendKeys(card_names.get(i) + " " + character_names.get(i));
+                threadSleep(500);
+                firefoxDriver.findElement(By.xpath("//ul[contains(@id,'Autocomplete')]//li[1]")).click();
+                scroll_to_bottom();
+                int version = 1;
+                String game_version = "Global";
+                if (ids.get(i).contains("jp")) {
+                    click_element("//li//a[text() = 'Japan']");
+                    version = 2;
+                    game_version = "Jp";
+                }
+                add_card_hidden_potential_rank_relation(version, fetch_existing_card_id_by_card_name(game_version,version));
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        quit_firefoxDriver();
+    }
+
+    public static void fetch_specific_card(String URL) {
+        launch_firefox(URL);
+        accept_cookies();
+        error_messages = new ArrayList<>();
+        fetch_card();
+        update_error_file();
+        quit_firefoxDriver();
     }
 
     public static void fetch_cards(String URL, String start_character) {
@@ -913,6 +991,7 @@ public class Main {
                 Statement statement = connection.createStatement();
                 String query = "INSERT INTO card_hidden_potential_rank_relation (card_id,hidden_potential_rank) " +
                         "VALUES ('" + card_id + "','" + fetch_hidden_potential_rank(version) + "')";
+                System.out.println(query);
                 statement.execute(query);
                 connection.close();
             } catch (SQLException e) {
